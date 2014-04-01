@@ -1,10 +1,11 @@
 //
 //  main.cpp
-//  BusquedaTabu
+//  Busqueda-Tabu-mvrp
 //
 //  Created by Rocela Durazo on 3/31/14.
 //  Copyright (c) 2014 Rocela Durazo. All rights reserved.
 //
+
 
 #include <iostream>
 #include <fstream>
@@ -13,7 +14,7 @@
 
 using namespace std;
 
-#include "BusquedaTabu.h"
+#include "Busqueda-Tabu-mvrp.h"
 
 int main()
 {
@@ -60,6 +61,5 @@ int main()
     //vector<int> r2 = T.ObtenerRuta();
     //T.ImprimirRuta(r);
     
-    return 0;
 }
 
