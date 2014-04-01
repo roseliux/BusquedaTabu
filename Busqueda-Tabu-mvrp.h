@@ -72,7 +72,6 @@ private:
     
     int GenerarRandom(int tam){ return rand() % (tam+1); } // generar random servira para las permutaciones, que nosea ni 0 o el ultimo
     vector<int> Intercambio(vector<int> r,int indice_1, int indice_2);
-    bool CerosJuntos(vector<int> r);
     
     
     
@@ -176,7 +175,7 @@ vector<int> BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
         tipo_movimiento = 1;
         
         vector<int> ruta2 = Intercambio(ruta_permutada, indice1, indice2);
-        while(ruta2[0] == 0 || ruta2[ruta2.size()-1] == 0 || CerosJuntos(ruta2)){//|| juntos){
+        while(ruta2[0] == 0 || ruta2[ruta2.size()-1] == 0){//|| juntos){
             ruta2 = RepararRuta(ruta_permutada);
             
         }
@@ -192,7 +191,7 @@ vector<int> BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
             lista_tabu.push_front(indice2);
             lista_tabu.push_front(indice1);
             
-            if(lista_tabu.size()/3 > TAM){
+            if(lista_tabu.size()/3 > TAM+1){
                 lista_tabu.pop_back();
                 lista_tabu.pop_back();
                 lista_tabu.pop_back();
@@ -335,44 +334,17 @@ vector<int> BusquedaTabu::Intercambio(vector<int> r, int indice_1, int indice_2)
 }
 vector<int> BusquedaTabu::RepararRuta(vector<int> r){
     int indice;
-
-    while (r[0] == 0 || r[r.size() - 1] == 0) {
-        if (r[0] == 0) {
-            indice = GenerarRandom(r.size() - 1);
-            r[0] = r[indice];
-            r[indice] = 0;
-        }
-        else{
-            indice = GenerarRandom(r.size() - 1);
-            r[r.size() - 1] = r[indice];
-            r[indice] = 0;
-        }
+    while (r[0] == 0) {
+        indice = GenerarRandom(r.size());
+        r[0] = r[indice];
+        r[indice] = 0;
     }
-    // Se revisa en toda la ruta si existen 0 juntos
-    while (CerosJuntos(r)) {
-        for (int i = 0; i < r.size() -1 ; i++) {
-            if (r[i] == 0 && r[i+1] == 0) {
-                do {
-                    indice = GenerarRandom(r.size() - 1);
-                } while (indice == i);
-                int aux = r[i];
-                r[i] = r[indice];
-                r[indice] = aux;
-            }
-        }
-
+    while(r[r.size() - 1] == 0){
+        indice = GenerarRandom(r.size());
+        r[r.size() - 1] = r[indice];
+        r[indice] = 0;
     }
-    
-    
     return r;
-}
-bool BusquedaTabu::CerosJuntos(vector<int> r){
-    for (int i = 0; i < r.size() -1 ; i++) {
-        if (r[i] == 0 && r[i+1] == 0) {
-            return true;
-        }
-    }
-    return false;
 }
 bool BusquedaTabu::SeEncuentraEnLaLista(deque<int> cola, int indice1, int indice2, int tipo_movimiento){
     
