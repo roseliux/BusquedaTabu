@@ -23,7 +23,7 @@ int main()
     
     int num_ciudades;
     int num_rutas = 3;
-    int num_ceros = num_rutas - 1;
+    //int num_ceros = num_rutas - 1;
     
     // LEER NUMERO DE CIUDADES POR EL ARCHIVO DE TXT
     ifstream read;
@@ -49,7 +49,7 @@ int main()
     //    }
     // ***********************************************
     
-    BusquedaTabu T(nodo, 10, num_rutas, 4); // @parametros: coordenadas, numero de ciudades, numero de caminos
+    BusquedaTabu T(nodo, 15, num_rutas, 4); // @parametros: coordenadas, numero de ciudades, numero de caminos
     //T.ImprimirCoordenadas(); // Las coordenadas se estan recibiendo bien!!!
     cout << endl;
     //T.Inicializar();
@@ -57,10 +57,9 @@ int main()
     cout << endl;
     T.CalcularMatrizDistancia();
     //T.ImprimirMatrizDistancia();
-    vector<int> r = T.PermutarRuta(100000,0);
-    //vector<int> r2 = T.ObtenerRuta();
-    //T.ImprimirRuta(r);
+    T.PermutarRuta(100000,0);
     
-    return 0;
+    
+    
 }
 
