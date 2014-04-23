@@ -28,7 +28,7 @@ int main()
     
     // LEER NUMERO DE CIUDADES POR EL ARCHIVO DE TXT
     ifstream read;
-    read.open("ex1.0.txt");
+    read.open("ex1.txt");
     read >> num_ciudades;
     read >> num_rutas;
     read >> capacidad;
@@ -70,6 +70,6 @@ int main()
     cout << endl;
     T.CalcularMatrizDistancia();
     //T.ImprimirMatrizDistancia();
-    T.PermutarRuta(1000);
+    T.PermutarRuta(10000);
 }
 
