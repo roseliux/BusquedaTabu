@@ -3,11 +3,13 @@ ex2.txt las instancias del problema se encuentran en A-n33-k5.vrp su solucion es
 ex3.txt las instancias del problema se encuentran en A-n53-k7.vrp su solucion esta opt-A-n53-k7
 
 Esta información se descargo de:
-http://neo.lcc.uma.es/vrp/wp-content/data/instances/Augerat/A-VRP-sol.zip
-http://neo.lcc.uma.es/vrp/wp-content/data/instances/Augerat/A-VRP.zip
 
- Mis resultados fueron por cada problema  5 rutas:
+- http://neo.lcc.uma.es/vrp/vrp-instances/capacitated-vrp-instances/ 
+- http://neo.lcc.uma.es/vrp/wp-content/data/instances/Augerat/A-VRP-sol.zip 
+- http://neo.lcc.uma.es/vrp/wp-content/data/instances/Augerat/A-VRP.zip
 
+
+Mis resultados fueron por cada problema  5 rutas:
 
 ex1 :
 en este utilice 10,000 iteraciones 
