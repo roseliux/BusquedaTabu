@@ -17,6 +17,7 @@ using namespace std;
 
 #define TAM 10 //tam lista tabu
 #define MEJORES 5
+#define LAMDA 10
 
 struct Vecino{
     
@@ -30,8 +31,8 @@ struct Nodo {
     float y;
     
     Nodo(){
-        x = 0;
-        y = 0;
+        x = 0.0;
+        y = 0.0;
     }
 };
 struct Ruta{
@@ -71,6 +72,8 @@ class BusquedaTabu {
     
 private:
     //PROPIEDADES PRIVADAS
+    const int capacidad;
+    vector<int> demanda; // demanda por cada nodo
     const int num_ciudades;
     const int num_rutas;
     vector<Nodo> coordenadas_ciudades;
@@ -93,6 +96,7 @@ private:
             lista_tabu.pop_back();
         }
     }
+    int costo_capacidad(vector<int> ciudades); // este costo es para saber cuanto se pasa en las rutas.
     void inicializar_vecindad();
     void ordenar_vecindad(); //ordenar el arreglo vecindad de menor distancia total a mayor
     void agregar_vecindad(int indice1, int indice2, float distancia); // agrega una ruta en el arreglo vecindad
@@ -116,7 +120,7 @@ private:
     
     
 public:
-    BusquedaTabu(vector<Nodo> c, int numciudades, int num_rutas_,int indice_deposito_):coordenadas_ciudades(c), num_ciudades(numciudades), num_rutas(num_rutas_), indice_deposito(indice_deposito_){
+    BusquedaTabu(vector<Nodo> c, vector<int> demanda_,int numciudades, int num_rutas_,int indice_deposito_, int capacidad_):coordenadas_ciudades(c), demanda(demanda_), num_ciudades(numciudades), num_rutas(num_rutas_), indice_deposito(indice_deposito_), capacidad(capacidad_){
         
         matriz_distancia = new (std::nothrow) float *[num_ciudades];
         for (int count = 0; count < num_ciudades; count++){
@@ -152,7 +156,7 @@ public:
     void CalcularMatrizDistancia();
     float PedirDistancia(int de, int a){ return matriz_distancia[de][a];}
     //vector<int> ObtenerRuta(){ return ruta_inicial;}
-    void PermutarRuta(int num_permutaciones, int deposito); //regresara la ruta permutada
+    void PermutarRuta(int num_permutaciones); //regresara la ruta permutada
     bool SeEncuentraEnLaLista(deque<int> l, int indice1,int indice2, int tipo_movimiento); //determina si se encuentra en la listatabu
     float ObtenerDistanciaRuta(vector<int> r);
     
@@ -168,12 +172,12 @@ public:
     }
     
 };
-void BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
+void BusquedaTabu::PermutarRuta(int num_permutaciones){
     
     
     vector<int> ruta_permutada = Inicializar();
     vector<float> vector_distancia = ObtenerVectorDistancia(ruta_permutada); // distancia de ciudad a ciudad
-    float distancia_total = ObtenerDistanciaTotal(vector_distancia);
+    float distancia_total = ObtenerDistanciaTotal(vector_distancia) + costo_capacidad(ruta_permutada);
     AgregarMejoresRutas(ruta_permutada, distancia_total,vector_distancia);
     Ruta ruta(ruta_permutada, distancia_total, vector_distancia);
     
@@ -181,7 +185,6 @@ void BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
     Ruta mejor_vecina;
     int tipo_movimiento = 2; // tipo de movimiento 1(intercambio), 2(corrimiento) o 3(inversion)
     for (int i = 0; i < num_permutaciones; i++) {
-
         tipo_movimiento = rand() % 2 + 1; // tipo de movimiento 1(intercambio), 2(corrimiento) o 3(inversion)
         generar_soluciones_vecinos(ruta, tipo_movimiento);
         // Seleccionar la mejor solucion vecina
@@ -193,10 +196,11 @@ void BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
             else if (tipo_movimiento == 2){
                 mejor_vecina = Inversion(ruta, vecindad[0].indice1, vecindad[0].indice2);
             }
-            agregar_lista_tabu(vecindad[0].indice1, vecindad[0].indice2, tipo_movimiento);
+            agregar_lista_tabu(vecindad[0].indice2, vecindad[0].indice1, tipo_movimiento);
         }
         else{
             for (int vec_ind = 0; vec_ind < TAM + 1; vec_ind++) {
+                //cout << vec_ind << endl;
                 if (SeEncuentraEnLaLista(lista_tabu, vecindad[vec_ind].indice1, vecindad[vec_ind].indice2, tipo_movimiento) == false) {
                     if (tipo_movimiento == 1) {
                         mejor_vecina = Intercambio(ruta, vecindad[vec_ind].indice1, vecindad[vec_ind].indice2);
@@ -204,7 +208,7 @@ void BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
                     else if (tipo_movimiento == 2){
                         mejor_vecina = Inversion(ruta, vecindad[vec_ind].indice1, vecindad[vec_ind].indice2);
                     }
-                    agregar_lista_tabu(vecindad[vec_ind].indice1, vecindad[vec_ind].indice2, tipo_movimiento);
+                    agregar_lista_tabu(vecindad[vec_ind].indice2, vecindad[vec_ind].indice1, tipo_movimiento);
                     break;
                 }
             }
@@ -216,9 +220,13 @@ void BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
 //        cout << endl;
         
         mejor_vecina.vector_distancia = ObtenerVectorDistancia(mejor_vecina.ciudades);
-        mejor_vecina.distancia = ObtenerDistanciaTotal(mejor_vecina.vector_distancia);
+//        mejor_vecina.distancia = ObtenerDistanciaTotal(mejor_vecina.vector_distancia);
+        mejor_vecina.distancia = ObtenerDistanciaTotal(mejor_vecina.vector_distancia) + costo_capacidad(mejor_vecina.ciudades);
         
-        AgregarMejoresRutas(mejor_vecina.ciudades, mejor_vecina.distancia, mejor_vecina.vector_distancia);
+        if (costo_capacidad(mejor_vecina.ciudades) < 1) {
+            AgregarMejoresRutas(mejor_vecina.ciudades, mejor_vecina.distancia, mejor_vecina.vector_distancia);
+        }
+        
         ruta.Asignar(mejor_vecina.ciudades, mejor_vecina.distancia, mejor_vecina.vector_distancia);
 //        cout << endl;
 //        ImprimirRuta(r.ciudades);
@@ -235,10 +243,35 @@ void BusquedaTabu::PermutarRuta(int num_permutaciones, int deposito){
     
     
 }
+int BusquedaTabu::costo_capacidad(vector<int> ciudades){
+    int costo = 0;
+    int aux = 0;
+    
+    for (int i = 0; i < ciudades.size(); i++) {
+        int ind = ciudades[i];
+        //cout << "demanda[" << ind << "] = " << demanda[ind] << ',';
+        aux += demanda[ind];
+        if (ciudades[i] == 0 || i == ciudades.size() - 1){
+            //cout << aux  << ", ";
+            if (aux > capacidad) {
+                //cout << " hahahah " << aux - capacidad <<  " adf "<<endl;
+                costo = costo + (aux - capacidad);
+                
+                
+            }
+            aux = 0;
+        }
+        //cout << costo <<  endl;
+    }
+    
+    //cout << "costo final " << costo << endl;
+    //cout << LAMDA * costo << endl;
+    return LAMDA * costo;
+}
 void BusquedaTabu::generar_soluciones_vecinos(Ruta r, int tipo_moviento){
     
     Ruta vecina(r.ciudades, r.distancia, r.vector_distancia);
-    Ruta ruta_vecina = r;
+    Ruta ruta_vecina;
     float distancia_vecino = 0.00;
     inicializar_vecindad();// inicializar el arreglo vecindad
     
@@ -248,18 +281,22 @@ void BusquedaTabu::generar_soluciones_vecinos(Ruta r, int tipo_moviento){
         for (int i = 1+j; i < r.ciudades.size(); i++) {
             if (tipo_moviento == 1) {
                 ruta_vecina = Intercambio(r, j, i);
+                
             }
             else if(tipo_moviento == 2){
                 ruta_vecina = Inversion(r, j, i);
+            
             }
             
             if (ruta_vecina.ciudades[0] != 0 && ruta_vecina.ciudades[ruta_vecina.ciudades.size()-1] != 0 && !CerosJuntos(ruta_vecina.ciudades)){
                 // se actualiza el vector distancia y distancia total, se mete al arreglo vecindad.
-                distancia_vecino = ruta_vecina.distancia;
+                //ruta_vecina.distancia = actualizar_distancia_inversion(ruta_vecina, j, i).distancia;
+                //ruta_vecina.distancia = ObtenerDistanciaRuta(ruta_vecina.ciudades);
+                distancia_vecino = ruta_vecina.distancia + costo_capacidad(ruta_vecina.ciudades);
                 // guardarla en el array vecindad
                 agregar_vecindad(j, i, distancia_vecino);
-                
-                
+//                cout << ObtenerDistanciaRuta(ruta_vecina.ciudades) << " = " << ObtenerDistanciaTotal(ObtenerVectorDistancia(ruta_vecina.ciudades)) << " != " << ruta_vecina.distancia<< endl;
+//                imprimir_vecindad();
             }
         }
     }
@@ -274,7 +311,7 @@ Ruta BusquedaTabu::actualizar_distancia_inversion(Ruta r, int indice1, int indic
 //    ImprimirRuta(r.ciudades);
 //    cout << endl;
 //    cout << "vector distancia " << indice1 << ", " << indice2<< endl;
-   
+
     float aux;
     
     int indice1_ = indice1, indice2_ = indice2; // copias de indice1 e indice2
@@ -311,23 +348,23 @@ Ruta BusquedaTabu::actualizar_distancia_inversion(Ruta r, int indice1, int indic
     // se calculan solo los que estan a la derecha de indice2 y a la izquierda de ind
     
     if (indice1_ == 0) {
-        if (indice2_ != 10) {
+        if (indice2_ != r.ciudades.size()-1) {
             r.vector_distancia[indice1_] = PedirDistancia(r.ciudades[indice1_], 0);
             r.vector_distancia[indice2_ + 1] = PedirDistancia(r.ciudades[indice2_], r.ciudades[indice2_ + 1]);
         }
-        else{
+        else if(indice2_ == r.ciudades.size()-1){
             r.vector_distancia[indice1_] = PedirDistancia(r.ciudades[indice1_], 0);
             r.vector_distancia[indice2_ + 1] = PedirDistancia(r.ciudades[indice2_], 0);
         }
         
     }
     else if(indice1_ != 0){
-        if (indice2_ != 10) {
+        if (indice2_ != r.ciudades.size()-1) {
             r.vector_distancia[indice1_] = PedirDistancia(r.ciudades[indice1_], r.ciudades[indice1_ - 1]);
             r.vector_distancia[indice2_] = PedirDistancia(r.ciudades[indice2_], r.ciudades[indice2_ - 1]);
             r.vector_distancia[indice2_ + 1] = PedirDistancia(r.ciudades[indice2_], r.ciudades[indice2_ + 1]);
         }
-        else{
+        else if(indice2_ == r.ciudades.size()-1){
             r.vector_distancia[indice1_] = PedirDistancia(r.ciudades[indice1_], r.ciudades[indice1_ - 1]);
             r.vector_distancia[indice2_] = PedirDistancia(r.ciudades[indice2_], r.ciudades[indice2_ - 1]);
             r.vector_distancia[indice2_ + 1] = PedirDistancia(r.ciudades[indice2_], 0);
@@ -358,7 +395,8 @@ void BusquedaTabu::inicializar_vecindad(){
     }
 }
 Ruta BusquedaTabu::Intercambio(Ruta r, int indice_1, int indice_2){
-    
+    //cout << indice_1 << ' ' << indice_2 << endl;
+
     int aux = r.ciudades[indice_1];
     r.ciudades[indice_1] = r.ciudades[indice_2];
     r.ciudades[indice_2] = aux;
@@ -374,8 +412,8 @@ Ruta BusquedaTabu::Inversion(Ruta r, int indice_1, int indice_2){
     
     int aux;
     // copias de los indices
-    int indice1 = indice_1;
-    int indice2 = indice_2;
+    int indice1_ = indice_1;
+    int indice2_ = indice_2;
     
     if (indice_1 == indice_2) {
         return r;
@@ -407,12 +445,12 @@ Ruta BusquedaTabu::Inversion(Ruta r, int indice_1, int indice_2){
         
     }
     // actualizar distancia total  y vector distancia. de la forma no optima
-    //r.vector_distancia = ObtenerVectorDistancia(r.ciudades);
-    //r.distancia = ObtenerDistanciaTotal(r.vector_distancia);
-    return r;
+//    r.vector_distancia = ObtenerVectorDistancia(r.ciudades);
+//    r.distancia = ObtenerDistanciaTotal(r.vector_distancia);
+//    return r;
     //ImprimirVectorDistancia(r.vector_distancia);
     // de la forma optima con actualizar distancia inversion
-    return actualizar_distancia_inversion(r, indice1, indice2);
+    return actualizar_distancia_inversion(r, indice1_, indice2_);
 }
 Ruta BusquedaTabu::Corrimiento(Ruta r, int indice_1, int indice_2){
     
@@ -481,7 +519,7 @@ Ruta BusquedaTabu::actualizar_distancia_intercambio(Ruta r, int indice1, int ind
     - r.vector_distancia[indice2] - r.vector_distancia[indice2 + 1];
     
     // se actualiza el vector distancia, dependiendo de los indices cambiados
-    if(indice1 == 0 && indice2 <num_ciudades){
+    if(indice1 == 0 && indice2 < r.ciudades.size()-1){
         
         r.vector_distancia[indice1] = PedirDistancia(r.ciudades[indice1], 0);
         r.vector_distancia[indice1 + 1] = PedirDistancia(r.ciudades[indice1], r.ciudades[indice1+1]);
@@ -489,7 +527,7 @@ Ruta BusquedaTabu::actualizar_distancia_intercambio(Ruta r, int indice1, int ind
         r.vector_distancia[indice2 + 1] = PedirDistancia(r.ciudades[indice2], r.ciudades[indice2+1]);
         
     }
-    else if (indice1 == 0 && indice2 == num_ciudades){
+    else if (indice1 == 0 && indice2 == r.ciudades.size()-1){
         
         r.vector_distancia[indice1] = PedirDistancia(r.ciudades[indice1], 0);
         r.vector_distancia[indice1+1] = PedirDistancia(r.ciudades[indice1], r.ciudades[indice1+1]);
@@ -497,7 +535,7 @@ Ruta BusquedaTabu::actualizar_distancia_intercambio(Ruta r, int indice1, int ind
         r.vector_distancia[indice2+1] = PedirDistancia(r.ciudades[indice2], 0);
         
     }
-    else if (indice1 != 0 && indice2 == num_ciudades){
+    else if (indice1 != 0 && indice2 == r.ciudades.size()-1){
         
         r.vector_distancia[indice1] = PedirDistancia(r.ciudades[indice1], r.ciudades[indice1 - 1]);
         r.vector_distancia[indice1+1] = PedirDistancia(r.ciudades[indice1], r.ciudades[indice1 + 1]);
@@ -505,7 +543,7 @@ Ruta BusquedaTabu::actualizar_distancia_intercambio(Ruta r, int indice1, int ind
         r.vector_distancia[indice2+1] = PedirDistancia(r.ciudades[indice2], 0);
     
     }
-    else{
+    else if(indice1 != 0 && indice2 != r.ciudades.size()-1){
     
         r.vector_distancia[indice1] = PedirDistancia(r.ciudades[indice1], r.ciudades[indice1 - 1]);
         r.vector_distancia[indice1+1] = PedirDistancia(r.ciudades[indice1], r.ciudades[indice1 + 1]);
@@ -527,6 +565,7 @@ Ruta BusquedaTabu::actualizar_distancia_intercambio(Ruta r, int indice1, int ind
 //    ImprimirVectorDistancia(ObtenerVectorDistancia(r.ciudades));
 //    cout << ' ' << ObtenerDistanciaTotal(ObtenerVectorDistancia(r.ciudades));
 //    cout << endl;
+    
     return r;
 }
 vector<float> BusquedaTabu::ObtenerVectorDistancia(vector<int> r){
@@ -634,14 +673,16 @@ vector<int> BusquedaTabu::Inicializar(){
     }
     
     // inicializar coordenadas ruta
+    if (indice_deposito != 0) {
+        Nodo aux;
+        aux.x = coordenadas_ciudades[0].x;
+        aux.y = coordenadas_ciudades[0].y;
+        coordenadas_ciudades[0].x = coordenadas_ciudades[indice_deposito].x;
+        coordenadas_ciudades[0].y = coordenadas_ciudades[indice_deposito].y;
+        coordenadas_ciudades[indice_deposito].x = aux.x;
+        coordenadas_ciudades[indice_deposito].y = aux.y;
+    }
     
-    Nodo aux;
-    aux.x = coordenadas_ciudades[0].x;
-    aux.y = coordenadas_ciudades[0].y;
-    coordenadas_ciudades[0].x = coordenadas_ciudades[indice_deposito].x;
-    coordenadas_ciudades[0].y = coordenadas_ciudades[indice_deposito].y;
-    coordenadas_ciudades[indice_deposito].x = aux.x;
-    coordenadas_ciudades[indice_deposito].y = aux.y;
     
     //Imprimir ruta inicial
     cout << "Ruta Inicial: ";
@@ -743,7 +784,8 @@ void BusquedaTabu::ImprimirMejoresRutas(){
         //cout << " = " ;
         //ImprimirVectorDistancia(MejoresRutas[i].vector_distancia);
         //cout << ObtenerDistanciaTotal(MejoresRutas[i].vector_distancia);
-        cout << " = " << ObtenerDistanciaRuta(MejoresRutas[i].ciudades);
+        cout << " = " << ObtenerDistanciaTotal(MejoresRutas[i].vector_distancia);
+        cout << " costo demanda =  " << costo_capacidad(MejoresRutas[i].ciudades);
         cout << endl;
     }
     
